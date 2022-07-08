@@ -1,0 +1,58 @@
+<system>
+  workers 1 # where N is a natural number (N >= 1).
+</system>
+
+# input logs
+
+<source>
+  @type  forward
+  @id    input1
+  @label @mainstream
+  port  24224
+</source>
+
+# http_healthcheck
+
+<source>
+  @type http_healthcheck
+  port 8888
+  bind 0.0.0.0
+</source>
+
+# expose metrics in prometheus format
+
+<source>
+  @type prometheus
+  bind 0.0.0.0
+  port 24231
+  metrics_path /metrics
+</source>
+
+<source>
+  @type prometheus_output_monitor
+  interval 10
+  <labels>
+    hostname ${hostname}
+  </labels>
+</source>
+
+# output logs graylog
+
+<label @mainstream>
+ <match *.**>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer
+    total_limit_size 1g
+  </buffer>
+
+  type copy
+    <store>
+      @type gelf
+      host graylog
+      port 5555
+      flush_interval 2s
+    </store>
+
+</match>
+</label>
