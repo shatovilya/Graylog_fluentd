@@ -1,7 +1,6 @@
 version: "3.7"
 
 x-log: &default
-  restart: always
   logging:
     driver: "json-file"
     options:
@@ -13,7 +12,7 @@ x-env-general: &env-general
 
 x-env-elasticsearch: &env-elasticsearch
   MAX_LOCKED_MEMORY:                  ${MAX_LOCKED_MEMORY:-unlimited}
-  ELASTICSEARCH_NODE_NAME:            ${ELASTICSEARCH_NODE_NAME:-{{.Task.Slot}}-elasticsearch-master}
+  ELASTICSEARCH_NODE_NAME:            ${ELASTICSEARCH_NODE_NAME}
   ELASTICSEARCH_CLUSTER_HOSTS:        ${ELASTICSEARCH_CLUSTER_HOSTS:-1-elasticsearch-master,2-elasticsearch-master,3-elasticsearch-master}
   ELASTICSEARCH_CLUSTER_NAME:         ${ELASTICSEARCH_CLUSTER_NAME:-elasticsearch-cluster-graylog}
   ELASTICSEARCH_HEAP_SIZE:            ${ELASTICSEARCH_HEAP_SIZE:-1g}
@@ -22,10 +21,10 @@ x-env-elasticsearch: &env-elasticsearch
 
 x-env-graylog: &env-graylog
   # CHANGE ME (must be at least 16 characters)!
-  GRAYLOG_PASSWORD_SECRET:                  ${GRAYLOG_PASSWORD_SECRET}
+  GRAYLOG_PASSWORD_SECRET:                  ${GRAYLOG_PASSWORD_SECRET:-1e4ee34tbrr890kn7rr6t7ry!}
   GRAYLOG_IS_MASTER:                        ${GRAYLOG_IS_MASTER:-true}
-  GRAYLOG_ROOT_PASSWORD_SHA2:               ${GRAYLOG_ROOT_PASSWORD_SHA2:-}
-  GRAYLOG_HTTP_EXTERNAL_URI:                ${GRAYLOG_HTTP_EXTERNAL_URI}
+  GRAYLOG_ROOT_PASSWORD_SHA2:               ${GRAYLOG_ROOT_PASSWORD_SHA2:-8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918}
+  GRAYLOG_HTTP_EXTERNAL_URI:                ${GRAYLOG_HTTP_EXTERNAL_URI:-http://localhost/}
   GRAYLOG_ELASTICSEARCH_VERSION:            ${GRAYLOG_ELASTICSEARCH_VERSION:-7}
   GRAYLOG_ELASTICSEARCH_HOSTS:              ${GRAYLOG_ELASTICSEARCH_HOSTS:-http://1-elasticsearch-master:9200,http://2-elasticsearch-master:9200,http://3-elasticsearch-master:9200}
   GRAYLOG_ELASTICSEARCH_SHARDS:             ${GRAYLOG_ELASTICSEARCH_SHARDS:-3}
@@ -58,8 +57,7 @@ services:
       resources:
         limits:
           memory: 2g
-    security_opt:
-      - no-new-privileges:true
+
     networks:
       - graylog
 
@@ -79,8 +77,6 @@ services:
       resources:
         limits:
           memory: 1g
-    security_opt:
-      - no-new-privileges:true
     networks:
       - graylog
 
@@ -113,8 +109,6 @@ services:
       mode: global
       placement:
         constraints: [node.role == manager]
-    security_opt:
-      - no-new-privileges:true
     depends_on:
       - elasticsearch
       - mongo
@@ -122,7 +116,7 @@ services:
       - graylog
 
   fluentd-collector:
-    image: ${fluentd_tags_build}
+    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
     <<: *default
     hostname: fluentd-collector
     deploy:
@@ -148,8 +142,6 @@ services:
       mode: global
       placement:
         constraints: [node.role == manager]
-    security_opt:
-      - no-new-privileges:true
     networks:
       - graylog
 
@@ -168,8 +160,6 @@ services:
       mode: global
       placement:
         constraints: [node.role == manager]
-    security_opt:
-      - no-new-privileges:true
     environment:
       <<: *env-general
     ports:
@@ -186,12 +176,10 @@ services:
           cpus: '1'
           memory: 1Gb
         reservations:
-          memory: 50M 
+          memory: 50M
       mode: global
       placement:
         constraints: [node.role == manager]
-    security_opt:
-      - no-new-privileges:true
     environment:
       <<: *env-general
     volumes:

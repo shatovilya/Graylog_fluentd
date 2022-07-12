@@ -21,10 +21,9 @@ x-env-elasticsearch: &env-elasticsearch
 
 x-env-graylog: &env-graylog
   # CHANGE ME (must be at least 16 characters)!
-  GRAYLOG_PASSWORD_SECRET:                  ${GRAYLOG_PASSWORD_SECRET:-}
+  GRAYLOG_PASSWORD_SECRET:                  ${GRAYLOG_PASSWORD_SECRET:-1e4ee34tbrr890kn7rr6t7ry!}
   GRAYLOG_IS_MASTER:                        ${GRAYLOG_IS_MASTER:-true}
-  GRAYLOG_ROOT_PASSWORD_SHA2:               ${GRAYLOG_ROOT_PASSWORD_SHA2:-}
-  GRAYLOG_HTTP_EXTERNAL_URI:                ${GRAYLOG_HTTP_EXTERNAL_URI}
+  GRAYLOG_ROOT_PASSWORD_SHA2:               ${GRAYLOG_ROOT_PASSWORD_SHA2:-8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918}
   GRAYLOG_ELASTICSEARCH_VERSION:            ${GRAYLOG_ELASTICSEARCH_VERSION:-7}
   GRAYLOG_ELASTICSEARCH_HOSTS:              ${GRAYLOG_ELASTICSEARCH_HOSTS:-http://1-elasticsearch-master:9200,http://2-elasticsearch-master:9200,http://3-elasticsearch-master:9200}
   GRAYLOG_ELASTICSEARCH_SHARDS:             ${GRAYLOG_ELASTICSEARCH_SHARDS:-3}
@@ -125,7 +124,7 @@ services:
       - graylog
 
   fluentd-collector:
-    image: ${fluentd_image_tags}
+    build: ./fluentd-collector
     <<: *default
     hostname: fluentd-collector
     volumes:
