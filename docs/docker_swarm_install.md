@@ -1,5 +1,9 @@
 # Cluster preparation docker swarm
 
+Functional diagram
+
+![Functional diagram](graylog_swarm.png "Text to show on mouseover")
+
 ## 1. VM preparation:
 
 Add to /etc/sysctl.conf string.
@@ -30,6 +34,9 @@ docker node update --label-add role=master <master-node>
 docker node update --label-add role=worker <worker-node>
 ```
 
-## 3. Initialize the swarm and connect the nodes
+backend node:
 
-docker stack deploy -c docker-compose.yml $(STACK_NAME)
+```
+docker swarm join \
+  --token <you-token>
+```

@@ -31,6 +31,7 @@ x-env-graylog: &env-graylog
   GRAYLOG_ELASTICSEARCH_REPLICAS:           ${GRAYLOG_ELASTICSEARCH_REPLICAS:-1}
   GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:      ${GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:-true}
   GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS: ${GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS:-0.0.0.0:9833}
+  
 
 x-env-db-backup: &env-db-backup
   DB_TYPE:          ${DB_TYPE:-mongo}
@@ -39,6 +40,7 @@ x-env-db-backup: &env-db-backup
   DB_DUMP_FREQ:     ${DB_DUMP_FREQ:-1440}
   DB_DUMP_BEGIN:    ${DB_DUMP_BEGIN:-1900}
   DB_CLEANUP_TIME:  ${DB_CLEANUP_TIME:-8640}
+  DB_AUTH:          ${DB_AUTH:-graylog}
 
 services:
   elasticsearch:
@@ -57,17 +59,17 @@ services:
       resources:
         limits:
           memory: 2g
-
     networks:
       - graylog
 
   mongo:
     image: mongo:4.2
     <<: *default
+    hostname: "{{.Task.Slot}}-mongo"
     environment:
       <<: *env-general
     volumes:
-        - mongo_data:/data/db 
+        - mongo_data:/data/db
     deploy:
       endpoint_mode: dnsrr
       placement:
