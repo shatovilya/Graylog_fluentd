@@ -1,0 +1,2 @@
+.env
+fluentd-collector/fluent.conf
