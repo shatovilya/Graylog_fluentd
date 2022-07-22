@@ -47,7 +47,7 @@ cp ./.env.swarm.temp ./.env
 3. Build and push fluentd collector image
 
 ```bash
-cp ./fluentd-collector/fluent.conf.graylog.temp ././fluentd-collector/fluent.conf.graylog.temp 
+cp ./fluentd-collector/fluent.conf.graylog.temp ././fluentd-collector/fluent.conf
 
 docker build ./fluentd-collector/ -t <<You remote Docker Registry>>/fluentd-collector:latest --no-cache
 
