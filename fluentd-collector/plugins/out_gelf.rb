@@ -1,3 +1,4 @@
+# original https://github.com/emsearcy/fluent-plugin-gelf/blob/master/lib/fluent/plugin/out_gelf.rb
 module Fluent
 
     class GELFOutput < BufferedOutput
