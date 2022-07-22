@@ -97,3 +97,5 @@ docker-compose -f docker-compose.yaml up -d
 [Secure docker remote socket](https://docs.docker.com/engine/security/protect-access/)
 
 [Manage swarm security with public key infrastructure (PKI)](https://docs.docker.com/engine/swarm/how-swarm-mode-works/pki/)
+
+[fluent-plugin-gelf](https://github.com/emsearcy/fluent-plugin-gelf/blob/master/lib/fluent/plugin/out_gelf.rb)
