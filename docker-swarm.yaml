@@ -233,18 +233,10 @@ services:
   fluentd-collector:
     image: ${fluentd-collector_repo}:${fluentd-collector_tags}
     <<: *default
-    hostname: fluentd-collector
     deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1Gb
-        reservations:
-          memory: 100M 
+      mode: global
     volumes:
-      - ./fluentd-collector/fluent.conf:/fluentd/etc/fluent.conf
       - buffer:/var/log/fluent/
-      - ./fluentd-collector/plugins:/fluentd/plugins:rw
     ports:
       # forward ports
       - "24224:24224"
@@ -253,13 +245,8 @@ services:
       - "8888:8888"
       # prometheus check ports
       - "24231:24231"
-    deploy:
-      mode: global
-      placement:
-        constraints: [node.role == manager]
     networks:
       - graylog
-
 
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest

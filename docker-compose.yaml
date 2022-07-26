@@ -125,13 +125,11 @@ services:
       - graylog
 
   fluentd-collector:
-    build: ./fluentd-collector
+    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
     <<: *default
     hostname: fluentd-collector
     volumes:
-      - ./fluentd-collector/fluent.conf:/fluentd/etc/fluent.conf
       - buffer:/var/log/fluent/
-      - ./fluentd-collector/plugins:/fluentd/plugins:rw
     ports:
       # forward ports
       - "24224:24224"
