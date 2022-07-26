@@ -260,6 +260,7 @@ services:
     networks:
       - graylog
 
+
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest
     <<: *default
