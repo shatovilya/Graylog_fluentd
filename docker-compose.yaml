@@ -30,6 +30,7 @@ x-env-graylog: &env-graylog
   GRAYLOG_ELASTICSEARCH_REPLICAS:           ${GRAYLOG_ELASTICSEARCH_REPLICAS:-1}
   GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:      ${GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:-true}
   GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS: ${GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS:-0.0.0.0:9833}
+  GRAYLOG_MONGODB_URI:                      ${GRAYLOG_MONGODB_URI:-}
 
 x-env-db-backup: &env-db-backup
   DB_TYPE:          ${DB_TYPE:-mongo}
@@ -77,15 +78,65 @@ services:
     networks:
       - graylog
 
-  mongo:
-    image: mongo:4.2
-    <<: *default
-    environment:
-      <<: *env-general
+  mongo1:
+    container_name: mongo1
+    image: mongo:4.4
     volumes:
-        - mongo_data:/data/db 
-    security_opt:
-      - no-new-privileges:true
+      - mongors_data1:/var/lib/mongo
+      - ./rs-init.sh:/scripts/rs-init.sh
+    # environment:
+        # MONGO_INITDB_ROOT_USERNAME: root
+        # MONGO_INITDB_ROOT_PASSWORD: example
+        # MONGO_INITDB_DATABASE: graylog
+    ports:
+      - 27017
+    networks:
+      - graylog
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
+    
+  mongo2:
+    container_name: mongo2
+    image: mongo:4.4
+    volumes:
+      - mongors_data2:/var/lib/mongo
+    # environment:
+        # MONGO_INITDB_ROOT_USERNAME: root
+        # MONGO_INITDB_ROOT_PASSWORD: example
+        # MONGO_INITDB_DATABASE: graylog
+    ports:
+      - 27017
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
+    networks:
+      - graylog
+
+  mongo3:
+    container_name: mongo3
+    image: mongo:4.4
+    volumes:
+      - mongors_data3:/var/lib/mongo
+    # environment:
+        # MONGO_INITDB_ROOT_USERNAME: root
+        # MONGO_INITDB_ROOT_PASSWORD: example
+        # MONGO_INITDB_DATABASE: graylog
+    ports:
+      - 27017
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
+    networks:
+      - graylog
+
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      # ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      # ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://graylog:graylog@mongo1:27017/graylog
     networks:
       - graylog
 
@@ -120,28 +171,27 @@ services:
       - 1-elasticsearch-master
       - 2-elasticsearch-master
       - 3-elasticsearch-master
-      - mongo
     networks:
       - graylog
 
-  fluentd-collector:
-    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
-    <<: *default
-    hostname: fluentd-collector
-    volumes:
-      - buffer:/var/log/fluent/
-    ports:
-      # forward ports
-      - "24224:24224"
-      - "24224:24224/udp"
-      # http check ports      
-      - "8888:8888"
-      # prometheus check ports
-      - "24231:24231"
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - graylog
+  # fluentd-collector:
+  #   image: ${fluentd-collector_repo}:${fluentd-collector_tags}
+  #   <<: *default
+  #   hostname: fluentd-collector
+  #   volumes:
+  #     - buffer:/var/log/fluent/
+  #   ports:
+  #     # forward ports
+  #     - "24224:24224"
+  #     - "24224:24224/udp"
+  #     # http check ports      
+  #     - "8888:8888"
+  #     # prometheus check ports
+  #     - "24231:24231"
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   networks:
+  #     - graylog
 
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest
@@ -179,3 +229,7 @@ volumes:
   graylog_data:
   mongo_data:
   backups:
+  mongodb_master_data:
+  mongors_data1:
+  mongors_data2:
+  mongors_data3:
