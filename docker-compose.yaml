@@ -84,10 +84,6 @@ services:
     volumes:
       - mongors_data1:/var/lib/mongo
       - ./rs-init.sh:/scripts/rs-init.sh
-    # environment:
-        # MONGO_INITDB_ROOT_USERNAME: root
-        # MONGO_INITDB_ROOT_PASSWORD: example
-        # MONGO_INITDB_DATABASE: graylog
     ports:
       - 27017
     networks:
@@ -100,10 +96,6 @@ services:
     image: mongo:4.4
     volumes:
       - mongors_data2:/var/lib/mongo
-    # environment:
-        # MONGO_INITDB_ROOT_USERNAME: root
-        # MONGO_INITDB_ROOT_PASSWORD: example
-        # MONGO_INITDB_DATABASE: graylog
     ports:
       - 27017
     restart: always
@@ -116,10 +108,6 @@ services:
     image: mongo:4.4
     volumes:
       - mongors_data3:/var/lib/mongo
-    # environment:
-        # MONGO_INITDB_ROOT_USERNAME: root
-        # MONGO_INITDB_ROOT_PASSWORD: example
-        # MONGO_INITDB_DATABASE: graylog
     ports:
       - 27017
     restart: always
@@ -134,8 +122,6 @@ services:
     ports:
       - 8081:8081
     environment:
-      # ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      # ME_CONFIG_MONGODB_ADMINPASSWORD: example
       ME_CONFIG_MONGODB_URL: mongodb://graylog:graylog@mongo1:27017/graylog
     networks:
       - graylog
@@ -174,24 +160,24 @@ services:
     networks:
       - graylog
 
-  # fluentd-collector:
-  #   image: ${fluentd-collector_repo}:${fluentd-collector_tags}
-  #   <<: *default
-  #   hostname: fluentd-collector
-  #   volumes:
-  #     - buffer:/var/log/fluent/
-  #   ports:
-  #     # forward ports
-  #     - "24224:24224"
-  #     - "24224:24224/udp"
-  #     # http check ports      
-  #     - "8888:8888"
-  #     # prometheus check ports
-  #     - "24231:24231"
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   networks:
-  #     - graylog
+  fluentd-collector:
+    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
+    <<: *default
+    hostname: fluentd-collector
+    volumes:
+      - buffer:/var/log/fluent/
+    ports:
+      # forward ports
+      - "24224:24224"
+      - "24224:24224/udp"
+      # http check ports      
+      - "8888:8888"
+      # prometheus check ports
+      - "24231:24231"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - graylog
 
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest

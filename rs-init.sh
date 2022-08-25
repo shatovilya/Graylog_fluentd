@@ -24,6 +24,6 @@ var config = {
 };
 rs.initiate(config, { force: true });
 db = db.getSiblingDB("graylog");
-db.createUser({user: "graylog", pwd: "graylog", roles: [{ role: "readWrite", db: "graylog" }],});
+db.createUser({user: "log", pwd: "log", roles: [{ role: "readWrite", db: "graylog" }],});
 rs.status();
 EOF
