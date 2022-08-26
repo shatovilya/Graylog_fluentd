@@ -8,6 +8,14 @@ x-log: &default
       max-size: "10m"
       max-file: "10"
 
+x-mongo-healthcheck: &mongo-healthcheck
+    healthcheck:
+      test: echo 'db.runCommand({serverStatus:1}).ok' | mongo -u ${DB_USER} -p ${DB_PASS} --host localhost --authenticationDatabase graylog --quiet| grep 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
 x-env-general: &env-general
   TZ: ${TZ:-Europe/Moscow}
 
@@ -34,12 +42,14 @@ x-env-graylog: &env-graylog
 
 x-env-db-backup: &env-db-backup
   DB_TYPE:          ${DB_TYPE:-mongo}
-  DB_HOST:          ${DB_HOST:-mongo}
-  DB_NAME:          ${DB_NAME:-all}
+  DB_HOST:          ${DB_HOST:-mongo1}
+  DB_NAME:          ${DB_NAME:-graylog}
   DB_DUMP_FREQ:     ${DB_DUMP_FREQ:-1440}
   DB_DUMP_BEGIN:    ${DB_DUMP_BEGIN:-1900}
   DB_CLEANUP_TIME:  ${DB_CLEANUP_TIME:-8640}
   DB_AUTH:          ${DB_AUTH:-graylog}
+  DB_PASS:          ${DB_PASS:-log}
+  DB_USER:          ${DB_USER:-log}
 
 services:
   1-elasticsearch-master:
@@ -80,41 +90,42 @@ services:
 
   mongo1:
     container_name: mongo1
-    image: mongo:4.4
+    build: ./docker/mongo
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
     volumes:
       - mongors_data1:/var/lib/mongo
-      - ./rs-init.sh:/scripts/rs-init.sh
-    ports:
-      - 27017
     networks:
       - graylog
-    restart: always
-    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
-    
+    <<: *mongo-healthcheck
+  
   mongo2:
     container_name: mongo2
-    image: mongo:4.4
+    build: ./docker/mongo
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
     volumes:
       - mongors_data2:/var/lib/mongo
-    ports:
-      - 27017
-    restart: always
-    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
     networks:
       - graylog
+    <<: *mongo-healthcheck
 
   mongo3:
     container_name: mongo3
-    image: mongo:4.4
+    build: ./docker/mongo
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
     volumes:
       - mongors_data3:/var/lib/mongo
-    ports:
-      - 27017
-    restart: always
-    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01"]
     networks:
       - graylog
-
+    <<: *mongo-healthcheck
 
   mongo-express:
     image: mongo-express
@@ -122,7 +133,7 @@ services:
     ports:
       - 8081:8081
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://graylog:graylog@mongo1:27017/graylog
+      ME_CONFIG_MONGODB_URL: mongodb://log:log@mongo1:27017/graylog
     networks:
       - graylog
 
@@ -161,7 +172,7 @@ services:
       - graylog
 
   fluentd-collector:
-    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
+    image: npcmr/fluentd-collector:v1.15
     <<: *default
     hostname: fluentd-collector
     volumes:
@@ -178,12 +189,18 @@ services:
       - no-new-privileges:true
     networks:
       - graylog
+    healthcheck:
+      test: curl 127.0.0.1:8888
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest
     <<: *default
     command:
-      '--es.uri=http://elasticsearch:9200'
+      '--es.uri=http://1-elasticsearch-master:9200'
     security_opt:
       - no-new-privileges:true
     environment:
@@ -192,6 +209,20 @@ services:
       - ${ES_EX_PORT:-9114}:9114
     networks:
       - graylog
+
+  # mongodb-exporter:
+  #   image: bitnami/mongodb-exporter:latest
+  #   <<: *default
+  #   command:
+  #     '--mongodb.uri=mongodb://log:log@mongo1:17001 --mongodb.collstats-colls=graylog'
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   environment:
+  #     <<: *env-general
+  #   ports:
+  #     - ${ES_EX_PORT:-9216}:9216
+  #   networks:
+  #     - graylog
 
   db-backup-mongo:
     image: tiredofit/db-backup

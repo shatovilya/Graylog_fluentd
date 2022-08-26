@@ -1,4 +1,6 @@
-#! /bin/bash
+#!/bin/bash
+
+DELAY=25
 
 mongo <<EOF
 var config = {
@@ -23,7 +25,11 @@ var config = {
     ]
 };
 rs.initiate(config, { force: true });
-db = db.getSiblingDB("graylog");
-db.createUser({user: "log", pwd: "log", roles: [{ role: "readWrite", db: "graylog" }],});
-rs.status();
 EOF
+
+echo "****** Waiting for ${DELAY} seconds for replicaset configuration to be applied ******"
+
+
+sleep $DELAY
+
+mongo < /init.js
