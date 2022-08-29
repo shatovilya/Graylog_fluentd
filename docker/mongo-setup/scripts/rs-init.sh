@@ -2,7 +2,9 @@
 
 DELAY=25
 
-mongo <<EOF
+sleep $DELAY
+
+mongo --host mongo1:27017 <<EOF
 var config = {
     "_id": "rs01",
     "version": 1,
@@ -32,4 +34,19 @@ echo "****** Waiting for ${DELAY} seconds for replicaset configuration to be app
 
 sleep $DELAY
 
-mongo < /init.js
+mongo --host mongo1:27017 <<EOF
+rs.status();
+db = db.getSiblingDB("graylog");
+db.createUser({
+    user: 'log',
+    pwd: 'log',
+    roles: [
+      {
+        role: 'readWrite',
+        db: 'graylog',
+      },
+    ],
+  });
+EOF
+
+sleep $DELAY
