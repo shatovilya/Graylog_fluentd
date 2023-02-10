@@ -146,16 +146,6 @@ services:
       - graylog
     entrypoint: [ "bash", "/rs-init.sh"]
 
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb://log:log@mongo1:27017/graylog
-    networks:
-      - graylog
-
   graylog:
     image: graylog/graylog:4.3
     <<: *default
@@ -220,34 +210,6 @@ services:
       - mongo1
       - mongo2
       - mongo3
-      - graylog
-
-  elasticsearch-exporter:
-    image: bitnami/elasticsearch-exporter:latest
-    <<: *default
-    command:
-      '--es.uri=http://1-elasticsearch-master:9200'
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      <<: *env-general
-    ports:
-      - ${ES_EX_PORT:-9114}:9114
-    networks:
-      - graylog
-
-  mongodb-exporter:
-    image: bitnami/mongodb-exporter:latest
-    <<: *default
-    command:
-      '--mongodb.uri=mongodb://log:log@mongo1:17001 --mongodb.collstats-colls=graylog'
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      <<: *env-general
-    ports:
-      - ${ES_EX_PORT:-9216}:9216
-    networks:
       - graylog
 
   db-backup-mongo:
