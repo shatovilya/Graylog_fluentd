@@ -245,7 +245,7 @@ services:
 
   mongo-setup:
     hostname: mongo-setup
-    image: npcmr/mongo-setup:v5.0.0
+    image: ${IMAGE_MONGO_SETUP}
     restart: on-failure:3
     environment:
       <<: *env-general
@@ -304,7 +304,7 @@ services:
 
 
   fluentd-collector:
-    image: npcmr/fluentd-collector:v1.15
+    image: ${IMAGE_FLUENTD}
     <<: *default
     deploy:
       mode: global
