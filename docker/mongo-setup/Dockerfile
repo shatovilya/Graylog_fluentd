@@ -1,4 +1,4 @@
-FROM mongo:4.4
+FROM mongo:5.0.0
 COPY ./scripts/rs-init.sh /
 COPY ./scripts/init.js /
 
