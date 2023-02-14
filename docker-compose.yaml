@@ -30,15 +30,18 @@ x-env-graylog: &env-graylog
   GRAYLOG_ELASTICSEARCH_REPLICAS:           ${GRAYLOG_ELASTICSEARCH_REPLICAS:-1}
   GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:      ${GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:-true}
   GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS: ${GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS:-0.0.0.0:9833}
+  GRAYLOG_MONGODB_URI:                      ${GRAYLOG_MONGODB_URI:-}
 
 x-env-db-backup: &env-db-backup
   DB_TYPE:          ${DB_TYPE:-mongo}
-  DB_HOST:          ${DB_HOST:-mongo}
-  DB_NAME:          ${DB_NAME:-all}
+  DB_HOST:          ${DB_HOST:-mongo1}
+  DB_NAME:          ${DB_NAME:-graylog}
   DB_DUMP_FREQ:     ${DB_DUMP_FREQ:-1440}
   DB_DUMP_BEGIN:    ${DB_DUMP_BEGIN:-1900}
   DB_CLEANUP_TIME:  ${DB_CLEANUP_TIME:-8640}
   DB_AUTH:          ${DB_AUTH:-graylog}
+  DB_PASS:          ${DB_PASS:-log}
+  DB_USER:          ${DB_USER:-log}
 
 services:
   1-elasticsearch-master:
@@ -77,20 +80,74 @@ services:
     networks:
       - graylog
 
-  mongo:
-    image: mongo:4.2
+  mongo1:
+    container_name: mongo1
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0
     <<: *default
     environment:
       <<: *env-general
     volumes:
-        - mongo_data:/data/db 
-    security_opt:
-      - no-new-privileges:true
+      - mongors_data1:/data/db
     networks:
       - graylog
+    depends_on:
+      - 1-elasticsearch-master
+      - 2-elasticsearch-master
+      - 3-elasticsearch-master
+      - mongo-setup
+
+  mongo2:
+    container_name: mongo2
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    volumes:
+      - mongors_data2:/data/db
+    networks:
+      - graylog
+    depends_on:
+      - 1-elasticsearch-master
+      - 2-elasticsearch-master
+      - 3-elasticsearch-master
+      - mongo-setup
+
+  mongo3:
+    container_name: mongo3
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    volumes:
+      - mongors_data3:/data/db
+    networks:
+      - graylog
+    depends_on:
+      - 1-elasticsearch-master
+      - 2-elasticsearch-master
+      - 3-elasticsearch-master
+      - mongo-setup
+
+  mongo-setup:
+    container_name: mongo-setup
+    build: ./docker/mongo-setup
+    restart: 'no'
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    volumes:
+      - mongors_setup:/data
+    networks:
+      - graylog
+    entrypoint: [ "bash", "/rs-init.sh"]
 
   graylog:
-    image: graylog/graylog:4.3
+    image: graylog/graylog:5.0
     <<: *default
     volumes:
       - graylog_data:/usr/share/graylog/data
@@ -120,18 +177,19 @@ services:
       - 1-elasticsearch-master
       - 2-elasticsearch-master
       - 3-elasticsearch-master
-      - mongo
+      - mongo-setup
+      - mongo1
+      - mongo2
+      - mongo3
     networks:
       - graylog
 
   fluentd-collector:
-    build: ./fluentd-collector
+    image: ${IMAGE_FLUENTD}
     <<: *default
     hostname: fluentd-collector
     volumes:
-      - ./fluentd-collector/fluent.conf:/fluentd/etc/fluent.conf
       - buffer:/var/log/fluent/
-      - ./fluentd-collector/plugins:/fluentd/plugins:rw
     ports:
       # forward ports
       - "24224:24224"
@@ -144,19 +202,14 @@ services:
       - no-new-privileges:true
     networks:
       - graylog
-
-  elasticsearch-exporter:
-    image: bitnami/elasticsearch-exporter:latest
-    <<: *default
-    command:
-      '--es.uri=http://elasticsearch:9200'
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      <<: *env-general
-    ports:
-      - ${ES_EX_PORT:-9114}:9114
-    networks:
+    depends_on:
+      - 1-elasticsearch-master
+      - 2-elasticsearch-master
+      - 3-elasticsearch-master
+      - mongo-setup
+      - mongo1
+      - mongo2
+      - mongo3
       - graylog
 
   db-backup-mongo:
@@ -181,3 +234,8 @@ volumes:
   graylog_data:
   mongo_data:
   backups:
+  mongodb_master_data:
+  mongors_data1:
+  mongors_data2:
+  mongors_data3:
+  mongors_setup:

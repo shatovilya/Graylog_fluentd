@@ -10,6 +10,13 @@ x-log: &default
 x-env-general: &env-general
   TZ: ${TZ:-Europe/Moscow}
 
+
+x-mongo-healthcheck: &mongo-healthcheck
+       healthcheck:
+        test: echo 'db.runCommand({serverStatus:1}).ok' | mongo -u ${DB_USER} -p ${DB_PASS} --host localhost --authenticationDatabase ${DB_NAME} --quiet| grep 1
+        interval: 30s
+        start_period: 1m
+
 x-env-elasticsearch: &env-elasticsearch
   MAX_LOCKED_MEMORY:                  ${MAX_LOCKED_MEMORY:-unlimited}
   # ELASTICSEARCH_NODE_NAME:            ${ELASTICSEARCH_NODE_NAME}
@@ -31,16 +38,18 @@ x-env-graylog: &env-graylog
   GRAYLOG_ELASTICSEARCH_REPLICAS:           ${GRAYLOG_ELASTICSEARCH_REPLICAS:-1}
   GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:      ${GRAYLOG_PROMETHEUS_EXPORTER_ENABLED:-true}
   GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS: ${GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS:-0.0.0.0:9833}
-  
+  GRAYLOG_MONGODB_URI:                      ${GRAYLOG_MONGODB_URI:-}
 
 x-env-db-backup: &env-db-backup
   DB_TYPE:          ${DB_TYPE:-mongo}
-  DB_HOST:          ${DB_HOST:-mongo}
-  DB_NAME:          ${DB_NAME:-all}
+  DB_HOST:          ${DB_HOST:-mongo1}
+  DB_NAME:          ${DB_NAME:-graylog}
   DB_DUMP_FREQ:     ${DB_DUMP_FREQ:-1440}
   DB_DUMP_BEGIN:    ${DB_DUMP_BEGIN:-1900}
   DB_CLEANUP_TIME:  ${DB_CLEANUP_TIME:-8640}
   DB_AUTH:          ${DB_AUTH:-graylog}
+  DB_PASS:          ${DB_PASS:-log}
+  DB_USER:          ${DB_USER:-log}
 
 services:
   1-elasticsearch-master:
@@ -56,11 +65,8 @@ services:
       placement:
         constraints:
           - node.labels.node == 1
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 1-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_1}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
@@ -77,11 +83,8 @@ services:
       placement:
         constraints:
           - node.labels.node == 2
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 2-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_2}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
@@ -98,11 +101,8 @@ services:
       placement:
         constraints:
           - node.labels.node == 3
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 3-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_3}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
@@ -119,11 +119,8 @@ services:
       placement:
         constraints:
           - node.labels.node == 1
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 4-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_4}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
@@ -141,11 +138,8 @@ services:
       placement:
         constraints:
           - node.labels.node == 2
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 5-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_5}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
@@ -162,36 +156,112 @@ services:
       placement:
         constraints:
           - node.labels.node == 3
-      resources:
-        limits:
-          memory: 2g
     volumes:
-      - 6-elasticsearch-master:/usr/share/elasticsearch/data
+      - ${DATA_ELASTIC_6}:/usr/share/elasticsearch/data
     networks:
       - graylog
 
-  mongo:
-    image: mongo:4.2
+  mongo1:
+    hostname: mongo1
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0.0
     <<: *default
-    hostname: "{{.Task.Slot}}-mongo"
     environment:
       <<: *env-general
-    volumes:
-        - mongo_data:/data/db
     deploy:
       endpoint_mode: dnsrr
       placement:
         constraints:
-          - node.labels.backend == true
-      replicas: 1
-      resources:
-        limits:
-          memory: 1g
+          - node.labels.node == 1
+    volumes:
+      - ${DATA_MONGO_1}:/data/db
     networks:
       - graylog
+    <<: *mongo-healthcheck
+    depends_on:
+      # - 1-elasticsearch-master
+      # - 2-elasticsearch-master
+      # - 3-elasticsearch-master
+      # - 4-elasticsearch-master
+      # - 5-elasticsearch-master
+      # - 6-elasticsearch-master
+      - mongo-setup
+
+  mongo2:
+    hostname: mongo2
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0.0
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    deploy:
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.node == 2
+    volumes:
+      - ${DATA_MONGO_2}:/data/db
+    networks:
+      - graylog
+    <<: *mongo-healthcheck
+    depends_on:
+      # - 1-elasticsearch-master
+      # - 2-elasticsearch-master
+      # - 3-elasticsearch-master
+      # - 4-elasticsearch-master
+      # - 5-elasticsearch-master
+      # - 6-elasticsearch-master
+      - mongo-setup
+      - mongo1
+
+  mongo3:
+    hostname: mongo3
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
+    image: mongo:5.0.0
+    <<: *default
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    deploy:
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.node == 3
+    volumes:
+      - ${DATA_MONGO_3}:/data/db
+    networks:
+      - graylog
+    <<: *mongo-healthcheck
+    depends_on:
+      # - 1-elasticsearch-master
+      # - 2-elasticsearch-master
+      # - 3-elasticsearch-master
+      # - 4-elasticsearch-master
+      # - 5-elasticsearch-master
+      # - 6-elasticsearch-master
+      - mongo-setup
+      - mongo1
+
+  mongo-setup:
+    hostname: mongo-setup
+    image: ${IMAGE_MONGO_SETUP}
+    restart: on-failure:3
+    environment:
+      <<: *env-general
+      <<: *env-db-backup
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.role == manager]
+    volumes:
+      - mongors_setup:/data
+    networks:
+      - graylog
+    entrypoint: [ "bash", "/rs-init.sh"]
 
   graylog:
-    image: graylog/graylog:4.3
+    image: graylog/graylog:5.0
     <<: *default
     volumes:
       - graylog_data:/usr/share/graylog/data
@@ -211,8 +281,8 @@ services:
       - 12201/udp
       - 5555/udp
       # Дополнтельные порты
-      - 30000-30020
-      - 30000-30020/udp
+      - 30004:30004
+      - 30004:30004/udp
       # Prometeus exporter
       - 9833:9833
     deploy:
@@ -226,40 +296,32 @@ services:
       - 4-elasticsearch-master
       - 5-elasticsearch-master
       - 6-elasticsearch-master
-      - mongo
+      - mongo1
+      - mongo2
+      - mongo3
     networks:
       - graylog
 
+
   fluentd-collector:
-    image: ${fluentd-collector_repo}:${fluentd-collector_tags}
+    image: ${IMAGE_FLUENTD}
     <<: *default
-    hostname: fluentd-collector
     deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1Gb
-        reservations:
-          memory: 100M 
+      mode: global
+      placement:
+        constraints: [node.role == worker]
     volumes:
-      - ./fluentd-collector/fluent.conf:/fluentd/etc/fluent.conf
       - buffer:/var/log/fluent/
-      - ./fluentd-collector/plugins:/fluentd/plugins:rw
     ports:
       # forward ports
-      - "24224:24224"
-      - "24224:24224/udp"
+      - "34224:24224"
+      - "34224:24224/udp"
       # http check ports      
       - "8888:8888"
       # prometheus check ports
       - "24231:24231"
-    deploy:
-      mode: global
-      placement:
-        constraints: [node.role == manager]
     networks:
       - graylog
-
 
   elasticsearch-exporter:
     image: bitnami/elasticsearch-exporter:latest
@@ -283,19 +345,43 @@ services:
     networks:
       - graylog
 
+  mongodb-exporter:
+    image: bitnami/mongodb-exporter:latest
+    <<: *default
+    command:
+      '--mongodb.uri=mongodb://mongo1:17001'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 100M
+        reservations:
+          memory: 10M 
+      mode: global
+      placement:
+        constraints: [node.role == manager]
+    environment:
+      <<: *env-general
+    ports:
+      - ${ES_EX_PORT:-9216}:9216
+    networks:
+      - graylog
+
   db-backup-mongo:
     image: tiredofit/db-backup
     <<: *default
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpuss: '1'
           memory: 1Gb
         reservations:
           memory: 50M
-      mode: global
-      placement:
-        constraints: [node.role == manager]
+    deploy:
+      endpoint_mode: dnsrr
+      # placement:
+      #   constraints:
+      #     - node.labels.node == 1
     environment:
       <<: *env-general
       <<: *env-db-backup
@@ -318,5 +404,8 @@ volumes:
   6-elasticsearch-master:
   buffer:
   graylog_data:
-  mongo_data:
   backups:
+  mongors_setup:
+  mongors_data1:
+  mongors_data2:
+  mongors_data3:

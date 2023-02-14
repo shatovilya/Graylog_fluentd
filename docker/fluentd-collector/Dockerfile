@@ -21,6 +21,8 @@ COPY ./plugins /fluentd/plugins
 
 COPY entrypoint.sh /bin/
 
+COPY fluent.conf /fluentd/etc/fluent.conf
+
 RUN ["chmod", "+x", "/bin/entrypoint.sh"]
 
-USER fluent
+# USER fluent
