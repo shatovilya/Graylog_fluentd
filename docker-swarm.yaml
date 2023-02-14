@@ -281,8 +281,8 @@ services:
       - 12201/udp
       - 5555/udp
       # Дополнтельные порты
-      - 30000-30020
-      - 30000-30020/udp
+      - 30004:30004
+      - 30004:30004/udp
       # Prometeus exporter
       - 9833:9833
     deploy:
@@ -314,8 +314,8 @@ services:
       - buffer:/var/log/fluent/
     ports:
       # forward ports
-      - "24224:24224"
-      - "24224:24224/udp"
+      - "34224:24224"
+      - "34224:24224/udp"
       # http check ports      
       - "8888:8888"
       # prometheus check ports
