@@ -185,7 +185,7 @@ services:
       - graylog
 
   fluentd-collector:
-    image: npcmr/fluentd-collector:v1.15
+    image: ${IMAGE_FLUENTD}
     <<: *default
     hostname: fluentd-collector
     volumes:
