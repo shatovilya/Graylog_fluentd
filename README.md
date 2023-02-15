@@ -54,7 +54,18 @@ docker build ./fluentd-collector/ -t <<You remote Docker Registry>>/fluentd-coll
 docker pull <<You remote Docker Registry>>/fluentd-collector:latest
 ```
 
-4. Run the project 
+4. Build and push mongo-setup collector image
+
+```bash
+cp ./docker/mongo-setup/scripts/rs-init.sh.temp ./docker/mongo-setup/scripts/rs-init.sh
+
+docker build ./docker/mongo-setup/ -t <<You remote Docker Registry>>/mongo-setup:latest --no-cache
+
+docker pull <<You remote Docker Registry>>/mongo-setup:latest
+```
+
+
+5. Run the project 
 
 ```bash
 env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --compose-file docker-swarm.yaml graylog
