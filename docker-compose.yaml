@@ -83,7 +83,7 @@ services:
   mongo1:
     container_name: mongo1
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
-    image: mongo:5.0
+    image: mongo:5.0.14
     <<: *default
     environment:
       <<: *env-general
@@ -100,7 +100,7 @@ services:
   mongo2:
     container_name: mongo2
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
-    image: mongo:5.0
+    image: mongo:5.0.14
     <<: *default
     environment:
       <<: *env-general
@@ -118,7 +118,7 @@ services:
   mongo3:
     container_name: mongo3
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs01" ]
-    image: mongo:5.0
+    image: mongo:5.0.14
     <<: *default
     environment:
       <<: *env-general
