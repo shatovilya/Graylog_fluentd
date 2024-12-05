@@ -1,4 +1,4 @@
-FROM fluent/fluentd:v1.15
+FROM fluent/fluentd:v1.17.1-1.2
 LABEL maintainer="Shatov Ilya https://github.com/shatovilya"
 
 USER root
